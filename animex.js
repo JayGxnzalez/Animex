@@ -135,18 +135,24 @@ async function searchAnimex(keyword, limit) {
 // Filters out thumbnail tracks
 // ==========================================
 
+function fixSubUrl(u) {
+    if (!u) return u;
+    // Some providers (e.g. sora/krussdomi) return malformed https:///host paths — collapse the extra slash
+    return u.replace(/^(https?:)\/\/\/+/, '$1//');
+}
+
 function extractSubtitles(data) {
     const tracks = data.tracks;
     if (!tracks || !tracks.length) return { subtitles: '', subtitlesHeaders: {}, allSubtitles: [] };
     const headers = data.headers || {};
     const allSubtitles = tracks.filter(function(t) { return t.url && t.kind !== 'thumbnails'; }).map(function(t) {
-        return { url: t.url, label: t.label || t.lang || 'Unknown', kind: t.kind || 'captions', headers: headers };
+        return { url: fixSubUrl(t.url), label: t.label || t.lang || 'Unknown', kind: t.kind || 'captions', headers: headers };
     });
     const primary = tracks.find(function(t) { return t.default && t.url && t.kind !== 'thumbnails'; })
         || tracks.find(function(t) { return t.url && t.kind !== 'thumbnails' && t.lang && (t.lang === 'en' || t.lang.toLowerCase().includes('english')); })
         || tracks.find(function(t) { return t.url && t.kind !== 'thumbnails'; });
     return {
-        subtitles: primary ? primary.url : '',
+        subtitles: primary ? fixSubUrl(primary.url) : '',
         subtitlesHeaders: primary ? headers : {},
         allSubtitles: allSubtitles
     };
