@@ -173,10 +173,14 @@ async function fetchProviderStream(slug, epNumber, provider, type) {
         const data = typeof res.json === 'function' ? await res.json() : JSON.parse(await res.text());
         if (!data || !data.sources || !data.sources.length) return null;
         const tip = provider.tip ? ' (' + provider.tip + ')' : '';
-        // yuki needs Referer, mimi/mochi work with no headers
+        // Pass through any headers the provider hands back (beep needs its Referer,
+        // yuki needs one too). Fall back to yuki's hardcoded Referer if it sends none.
+        // mimi/mochi return no headers and play fine with {}.
         var headers = {};
-        if (provider.id === 'yuki') {
-            headers = (data.headers && data.headers.Referer) ? data.headers : PROVIDER_FALLBACK_HEADERS['yuki'];
+        if (data.headers && (data.headers.Referer || data.headers.referer)) {
+            headers = data.headers;
+        } else if (provider.id === 'yuki') {
+            headers = PROVIDER_FALLBACK_HEADERS['yuki'];
         }
         const subData = extractSubtitles(data);
         const source = data.sources[0];
