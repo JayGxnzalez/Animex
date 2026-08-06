@@ -179,15 +179,16 @@ async function fetchProviderStream(slug, epNumber, provider, type) {
         const data = typeof res.json === 'function' ? await res.json() : JSON.parse(await res.text());
         if (!data || !data.sources || !data.sources.length) return null;
         const tip = provider.tip ? ' (' + provider.tip + ')' : '';
-        // Pass through any headers the provider hands back (beep needs its Referer,
-        // yuki needs one too). Fall back to yuki's hardcoded Referer if it sends none.
-        // mimi/mochi return no headers and play fine with {}.
-        var headers = {};
-        if (data.headers && (data.headers.Referer || data.headers.referer)) {
-            headers = data.headers;
-        } else if (provider.id === 'yuki') {
-            headers = PROVIDER_FALLBACK_HEADERS['yuki'];
+
+        // Trust whatever headers the API returns for this provider/episode —
+        // header requirements vary per show, not just per provider.
+        // Only fall back to a hardcoded header if the API returns nothing
+        // AND we know this provider needs one.
+        var headers = data.headers || {};
+        if (!headers.Referer && PROVIDER_FALLBACK_HEADERS[provider.id]) {
+            headers = PROVIDER_FALLBACK_HEADERS[provider.id];
         }
+
         const subData = extractSubtitles(data);
         const source = data.sources[0];
         return {
