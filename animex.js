@@ -190,7 +190,18 @@ async function fetchProviderStream(slug, epNumber, provider, type) {
         }
 
         const subData = extractSubtitles(data);
-        const source = data.sources[0];
+        // Prefer "auto"/master playlists (adaptive), otherwise pick highest fixed quality
+        const source = data.sources.slice().sort(function(a, b) {
+            var qaRaw = (a.quality || '').toLowerCase();
+            var qbRaw = (b.quality || '').toLowerCase();
+            var aIsAuto = qaRaw === 'auto' || qaRaw === 'master';
+            var bIsAuto = qbRaw === 'auto' || qbRaw === 'master';
+            if (aIsAuto && !bIsAuto) return -1;
+            if (bIsAuto && !aIsAuto) return 1;
+            var qa = parseInt(qaRaw.replace(/\D/g, '')) || 0;
+            var qb = parseInt(qbRaw.replace(/\D/g, '')) || 0;
+            return qb - qa;
+        })[0];
         return {
             title: type.toUpperCase() + ' ' + provider.id.toUpperCase() + tip,
             streamUrl: source.url,
